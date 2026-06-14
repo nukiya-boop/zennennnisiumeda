@@ -6,7 +6,7 @@ import os
 IMG_DIR = "/home/user/zennennnisiumeda/images"
 OUT = "/home/user/zennennnisiumeda/output.mp4"
 W, H = 1080, 1920
-DURATION = 3.5  # seconds per image
+DURATION = 3.75  # seconds per image (8 images = 30s)
 FADE = 0.5
 
 # テロップ定義（画像順）
@@ -29,7 +29,7 @@ captions = [
     "少人数から大人数まで\n柔軟にご対応",
     "様々なシーンの会食に\nご利用いただけます",
     "上質な空間で\n忘れられない宴を",
-    "ご予約・お問い合わせは\nこちらから",
+    "",
 ]
 
 def fit_image(path, w, h, contain=False):
@@ -63,24 +63,26 @@ for fname, caption in zip(images_order, captions):
     arr = fit_image(path, W, H, contain=contain_mode)
     base = ImageClip(arr, duration=DURATION)
 
-    txt = TextClip(
-        text=caption,
-        font_size=62,
-        color="white",
-        font="/usr/share/fonts/truetype/fonts-japanese-gothic.ttf",
-        stroke_color="black",
-        stroke_width=3,
-        text_align="center",
-        method="caption",
-        size=(W - 80, None),
-    ).with_position(("center", H - 340)).with_duration(DURATION)
-
-    clip = CompositeVideoClip([base, txt])
+    if caption:
+        txt = TextClip(
+            text=caption,
+            font_size=62,
+            color="white",
+            font="/usr/share/fonts/truetype/fonts-japanese-gothic.ttf",
+            stroke_color="black",
+            stroke_width=3,
+            text_align="center",
+            method="caption",
+            size=(W - 80, None),
+        ).with_position(("center", H - 340)).with_duration(DURATION)
+        clip = CompositeVideoClip([base, txt])
+    else:
+        clip = base
     clip = clip.with_effects([__import__("moviepy").video.fx.FadeIn(FADE),
                                __import__("moviepy").video.fx.FadeOut(FADE)])
     clips.append(clip)
 
 final = concatenate_videoclips(clips, method="compose")
 final.write_videofile(OUT, fps=30, codec="libx264", audio=False,
-                      ffmpeg_params=["-crf", "20"])
+                      ffmpeg_params=["-crf","23","-preset","fast","-pix_fmt","yuv420p","-movflags","+faststart"])
 print("Done:", OUT)
