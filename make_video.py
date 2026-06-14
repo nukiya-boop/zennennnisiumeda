@@ -11,13 +11,13 @@ FADE = 0.5
 
 # テロップ定義（画像順）
 images_order = [
-    "DSC00477.jpg",
+    "1P3J1095.jpg",      # 1: 変更
     "DSC00732.jpg",
     "DSC00741.jpg",
     "DSC02075.jpg",
     "内部 (11).jpg",
     "1P3J1082.jpg",
-    "1P3J1095.jpg",
+    "DSC00477.jpg",      # 7: 変更
     "西梅田QR文字入り.jpg",
 ]
 
@@ -32,16 +32,25 @@ captions = [
     "ご予約・お問い合わせは\nこちらから",
 ]
 
-def fit_image(path, w, h):
+def fit_image(path, w, h, contain=False):
     img = Image.open(path).convert("RGB")
     iw, ih = img.size
-    scale = max(w / iw, h / ih)
-    nw, nh = int(iw * scale), int(ih * scale)
-    img = img.resize((nw, nh), Image.LANCZOS)
-    left = (nw - w) // 2
-    top = (nh - h) // 2
-    img = img.crop((left, top, left + w, top + h))
-    return np.array(img)
+    if contain:
+        # 全体を収める（黒帯あり）
+        scale = min(w / iw, h / ih)
+        nw, nh = int(iw * scale), int(ih * scale)
+        img = img.resize((nw, nh), Image.LANCZOS)
+        canvas = Image.new("RGB", (w, h), (0, 0, 0))
+        canvas.paste(img, ((w - nw) // 2, (h - nh) // 2))
+        return np.array(canvas)
+    else:
+        scale = max(w / iw, h / ih)
+        nw, nh = int(iw * scale), int(ih * scale)
+        img = img.resize((nw, nh), Image.LANCZOS)
+        left = (nw - w) // 2
+        top = (nh - h) // 2
+        img = img.crop((left, top, left + w, top + h))
+        return np.array(img)
 
 clips = []
 for fname, caption in zip(images_order, captions):
@@ -50,7 +59,8 @@ for fname, caption in zip(images_order, captions):
         print(f"Skip: {fname}")
         continue
 
-    arr = fit_image(path, W, H)
+    contain_mode = fname == "西梅田QR文字入り.jpg"
+    arr = fit_image(path, W, H, contain=contain_mode)
     base = ImageClip(arr, duration=DURATION)
 
     txt = TextClip(
